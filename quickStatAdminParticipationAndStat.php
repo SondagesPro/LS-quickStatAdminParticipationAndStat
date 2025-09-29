@@ -1186,7 +1186,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $condition = "submitdate IS NOT NULL";
         $step = $this->get("step", "Survey", $iSurveyId, '');
         if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
-            if (intval($step) >= 0 ) {
+            if (intval($step) >= 0) {
                 $condition = "lastpage >= " . intval($step);
             } else {
                 $condition = "";
@@ -1211,7 +1211,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $andCondition = " AND completed!='N' AND completed<>'' AND responses.submitdate IS NOT NULL";
             $step = $this->get("step", "Survey", $iSurveyId, '');
             if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
-                if (intval($step) >= 0 ) {
+                if (intval($step) >= 0) {
                     $andCondition = " AND responses.lastpage >= " . intval($step);
                 } else {
                     $andCondition = "";
@@ -1274,7 +1274,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $condition = "submitdate IS NOT NULL";
             $step = $this->get("step", "Survey", $iSurveyId, '');
             if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
-                if (intval($step) >= 0 ) {
+                if (intval($step) >= 0) {
                     $condition = "lastpage >= " . intval($step);
                 } else {
                     $condition = "";
@@ -2328,7 +2328,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     $sWhere = "submitdate IS NOT NULL";
                 } elseif (intval($step) > 0) {
                     $sWhere = "lastpage >= " . intval($step);
-                }                    
+                }
                 $sWhere .= " AND concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}";
                 $params = [];
                 $countParams = 1;
