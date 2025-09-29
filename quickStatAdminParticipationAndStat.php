@@ -5,9 +5,10 @@
  *
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2016-2025 Denis Chenu <https://www.sondages.pro>
- * @copyright 2016-2023 Advantage <http://www.advantage.fr>
+ * @copyright 2016-2025 Advantage <http://www.advantage.fr>
+ * @copyright 2025 PAQS <http://www.paqs.be>
  * @license AGPL v3
- * @version 5.3.5
+ * @version 5.4.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -241,9 +242,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 "type" => "info",
                 "content" =>
                     "<p class='alert alert-info'>" .
-                    $this->translate(
-                        "Survey is not activated : no statistics can be shown."
-                    ) .
+                    $this->translate("Survey is not activated : no statistics can be shown.") .
                     "</p>",
             ];
         }
@@ -260,9 +259,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aSettings["numberMax"] = [
             "type" => "int",
             "label" => $this->translate("Expected participation"),
-            "help" => $this->translate(
-                "Used for participation rate, replace token count value."
-            ),
+            "help" => $this->translate("Used for participation rate, replace token count value."),
             "htmlOptions" => ["min" => 0],
             "current" => $this->get(
                 "numberMax",
@@ -271,6 +268,34 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 0
             ),
         ];
+        $aSettings["step"] = [
+            "type" => "int",
+            "label" => $this->translate("Step to be used for satisfaction tab"),
+            "help" => $this->translate("By default : use only submitted response for statistics, you can choose the last step/page if you want to include not submitted response. Use 0 or -1 to include all response"),
+            "htmlOptions" => [
+                "min" => -1,
+                "placeholder" => $this->translate("Completed response")
+            ],
+            "current" => $this->get(
+                "step",
+                "Survey",
+                $surveyId,
+                ''
+            ),
+        ];
+        $aSettings["stepParticipation"] = [
+            "type" => "select",
+            "label" => $this->translate("Use step for participation too"),
+            "help" => $this->translate("If you use step for satisfaction, you can use step for particiaption too"),
+            "options" => ["1" => gT("Yes"), "0" => gT("No")],
+            "current" => $this->get(
+                "stepParticipation",
+                "Survey",
+                $surveyId,
+                '1'
+            ),
+        ];
+
         $aSettings["CrossTitle"] = [
             "type" => "info",
             "content" =>
@@ -281,9 +306,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if ($oSurvey->datestamp == "Y") {
             $aSettings["participationComment"] = [
                 "type" => "html",
-                "label" => $this->translate(
-                    "Description for participation tab"
-                ),
+                "label" => $this->translate("Description for participation tab"),
                 "current" => $this->get(
                     "participationComment",
                     "Survey",
@@ -295,9 +318,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             ];
             $aSettings["dailyRate"] = [
                 "type" => "select",
-                "label" => $this->translate(
-                    "Show the number of completed daily responses."
-                ),
+                "label" => $this->translate("Show the number of completed daily responses."),
                 "options" => ["1" => gT("Yes"), "0" => gT("No")],
                 "current" => $this->get(
                     "dailyRate",
@@ -308,9 +329,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             ];
             $aSettings["dailyRateCumulative"] = [
                 "type" => "select",
-                "label" => $this->translate(
-                    "Show the number of completed daily cumulative responses."
-                ),
+                "label" => $this->translate("Show the number of completed daily cumulative responses."),
                 "options" => ["1" => gT("Yes"), "0" => gT("No")],
                 "current" => $this->get(
                     "dailyRateCumulative",
@@ -329,9 +348,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             ) {
                 $aSettings["dailyRateEnter"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Show the number of daily entries."
-                    ),
+                    "label" => $this->translate("Show the number of daily entries."),
                     "options" => ["1" => gT("Yes"), "0" => gT("No")],
                     "current" => $this->get(
                         "dailyRateEnter",
@@ -351,9 +368,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             ) {
                 $aSettings["dailyRateAction"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Show the number of daily activities."
-                    ),
+                    "label" => $this->translate("Show the number of daily activities."),
                     "options" => ["1" => gT("Yes"), "0" => gT("No")],
                     "current" => $this->get(
                         "dailyRateAction",
@@ -366,9 +381,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         } else {
             $aSettings["dailyRate"] = [
                 "type" => "info",
-                "label" => $this->translate(
-                    "Survey are not date stamped: it's not possible to show daily rates."
-                ),
+                "label" => $this->translate("Survey are not date stamped: it's not possible to show daily rates."),
             ];
         }
         /* Token attribute */
@@ -418,9 +431,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 }
                 $aSettings["tokenAttributes"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Token attributes for pivot (cross-sectional) - graph"
-                    ),
+                    "label" => $this->translate("Token attributes for pivot (cross-sectional) - graph"),
                     "options" => $aOptions,
                     "htmlOptions" => ["multiple" => "multiple"],
                     "current" => $this->get(
@@ -447,9 +458,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if (!empty($aoSingleQuestion)) {
             $aSettings["questionCross"] = [
                 "type" => "select",
-                "label" => $this->translate(
-                    "Question  for pivot (cross-sectional)"
-                ),
+                "label" => $this->translate("Question  for pivot (cross-sectional)"),
                 "options" => CHtml::listData(
                     $aoSingleQuestion,
                     "qid",
@@ -727,9 +736,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 }
                 $aSettings["tokenAttributesSatisfaction"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Token attributes for pivot (graph)"
-                    ),
+                    "label" => $this->translate("Token attributes for pivot (graph)"),
                     "options" => $aOptions,
                     "htmlOptions" => ["multiple" => "multiple"],
                     "current" => $this->get(
@@ -740,9 +747,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 ];
                 $aSettings["tokenAttributesSatisfactionTable"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Token attributes for pivot (table)"
-                    ),
+                    "label" => $this->translate("Token attributes for pivot (table)"),
                     "options" => $aOptions,
                     "htmlOptions" => ["multiple" => "multiple"],
                     "current" => $this->get(
@@ -755,9 +760,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             if (!empty($aoSingleQuestion)) {
                 $aSettings["questionCrossSatisfaction"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Question for pivot (in graphic)"
-                    ),
+                    "label" => $this->translate("Question for pivot (in graphic)"),
                     "options" => CHtml::listData(
                         $aoSingleQuestion,
                         "qid",
@@ -783,9 +786,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 ];
                 $aSettings["questionCrossSatisfactionTable"] = [
                     "type" => "select",
-                    "label" => $this->translate(
-                        "Question for pivot (in array)"
-                    ),
+                    "label" => $this->translate("Question for pivot (in array)"),
                     "options" => CHtml::listData(
                         $aoSingleQuestion,
                         "qid",
@@ -1182,6 +1183,15 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $max = Token::model($iSurveyId)->count(); // see with Token::model($iSurveyId)->empty()->count()
             $source = 'token';
         }
+        $condition = "submitdate IS NOT NULL";
+        $step = $this->get("step", "Survey", $iSurveyId, '');
+        if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
+            if (intval($step) >= 0 ) {
+                $condition = "lastpage >= " . intval($step);
+            } else {
+                $condition = "";
+            }
+        }
         $aResponses["total"] = [
             "title" => $this->translate("Globally"),
             "max" => $max,
@@ -1189,9 +1199,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 [
                     "title" => $this->translate("Total responses"),
                     "max" => $max,
-                    "completed" => Response::model($iSurveyId)->count(
-                        "submitdate IS NOT NULL"
-                    ),
+                    "completed" => Response::model($iSurveyId)->count($condition),
                 ],
             ],
             'source' => $source
@@ -1200,6 +1208,15 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aTokenCross = $this->get("tokenAttributes", "Survey", $iSurveyId);
         if (!empty($aTokenCross) && tableExists("{{tokens_{$iSurveyId}}}")) {
             $aValidAttributes = Token::model($iSurveyId)->attributeLabels();
+            $andCondition = " AND completed!='N' AND completed<>'' AND responses.submitdate IS NOT NULL";
+            $step = $this->get("step", "Survey", $iSurveyId, '');
+            if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
+                if (intval($step) >= 0 ) {
+                    $andCondition = " AND responses.lastpage >= " . intval($step);
+                } else {
+                    $andCondition = "";
+                }
+            }
             foreach ($aTokenCross as $tokenCross) {
                 if (array_key_exists($tokenCross, $aValidAttributes)) {
                     /* The list */
@@ -1222,7 +1239,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                             "completed" => Token::model($iSurveyId)
                                 ->with("responses")
                                 ->count(
-                                    "$tokenCross=:tokenvalue AND completed!='N' AND completed<>'' AND responses.submitdate IS NOT NULL",
+                                    "$tokenCross=:tokenvalue" . $andCondition,
                                     [":tokenvalue" => $sTokenValue]
                                 ),
                         ];
@@ -1254,6 +1271,15 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 ->with("group")
                 ->with("questionl10ns")
                 ->findAll($oCriteria);
+            $condition = "submitdate IS NOT NULL";
+            $step = $this->get("step", "Survey", $iSurveyId, '');
+            if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
+                if (intval($step) >= 0 ) {
+                    $condition = "lastpage >= " . intval($step);
+                } else {
+                    $condition = "";
+                }
+            }
             if (!empty($aoSingleQuestion)) {
                 foreach ($aoSingleQuestion as $oSingleQuestion) {
                     $sColumn = "{$oSingleQuestion->sid}X{$oSingleQuestion->gid}X{$oSingleQuestion->qid}";
@@ -1271,7 +1297,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     $globalMax = 0;
                     foreach ($oAnswers as $oAnswer) {
                         $countCriteria = new CdbCriteria();
-                        $countCriteria->condition = "submitdate IS NOT NULL";
+                        if ($condition) {
+                            $countCriteria->condition = $condition;
+                        }
                         $countCriteria->compare(
                             Yii::app()->db->quoteColumnName($sColumn),
                             $oAnswer->code
@@ -1747,6 +1775,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         }
         die();
     }
+
     /**
      * Get the reponse by day
      * @param int iSurveyId : the id of the survey
@@ -1755,6 +1784,12 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     private function getDailyResponsesRate($iSurveyId, $state = "submitdate")
     {
+        if ($state == "submitdate") {
+            $step = $this->get("step", "Survey", $iSurveyId, '');
+            if ($step !== '' && $this->get("stepParticipation", "Survey", $iSurveyId, 0)) {
+                return $this->getDailyResponsesRateByStep($iSurveyId);
+            }
+        }
         $aDailyResponsesRateArray = Yii::app()
             ->db->createCommand()
             ->select(
@@ -1775,6 +1810,39 @@ class quickStatAdminParticipationAndStat extends PluginBase
         }
         return $aDailyResponsesRate;
     }
+
+    /**
+     * Get the reponse by day
+     * @param int iSurveyId : the id of the survey
+     */
+    private function getDailyResponsesRateByStep($iSurveyId)
+    {
+        $step = intval($this->get("step", "Survey", $iSurveyId, ''));
+        $where = "datestamp IS NOT NULL";
+        if ($step > 0) {
+            $where = "datestamp IS NOT NULL and lastpage >= $step";
+        }
+        $aDailyResponsesRateArray = Yii::app()
+            ->db->createCommand()
+            ->select(
+                "DATE(datestamp) as " .
+                    Yii::app()->db->quoteColumnName("date") .
+                    ",COUNT(*) AS " .
+                    Yii::app()->db->quoteColumnName("nb")
+            )
+            ->from("{{survey_{$iSurveyId}}} s")
+            ->where($where)
+            ->order("date")
+            ->group("date")
+            ->queryAll();
+        $aDailyResponsesRate = [];
+        foreach ($aDailyResponsesRateArray as $aDailyResponse) {
+            $aDailyResponsesRate[$aDailyResponse["date"]] =
+                $aDailyResponse["nb"];
+        }
+        return $aDailyResponsesRate;
+    }
+
     /**
      * Get list of statictics survey for this user
      * @return void (rendering)
@@ -1798,9 +1866,22 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 $aStatSurvey["sid"]
             )->count();
             $aFooter['responsesTotal'] += $aStatSurvey["responsesTotal"];
-            $aStatSurvey["responsesCount"] = Response::model(
-                $aStatSurvey["sid"]
-            )->count("submitdate IS NOT NULL");
+            $step = $this->get("step", "Survey", $aStatSurvey["sid"], '');
+            if ($step !== '' &&  $this->get("stepParticipation", "Survey", $aStatSurvey["sid"], 1)) {
+                if (intval($step) > 0) {
+                    $aStatSurvey["responsesCount"] = Response::model(
+                        $aStatSurvey["sid"]
+                    )->count("lastpage >= " . intval($step));
+                } else {
+                    $aStatSurvey["responsesCount"] = Response::model(
+                        $aStatSurvey["sid"]
+                    )->count();
+                }
+            } else {
+                $aStatSurvey["responsesCount"] = Response::model(
+                    $aStatSurvey["sid"]
+                )->count("submitdate IS NOT NULL");
+            }
             $aFooter['responsesCount'] += $aStatSurvey["responsesCount"];
             $aStatSurvey["tokensCount"] = $this->get(
                 "numberMax",
@@ -2206,6 +2287,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         //~ $aAverage=array(); // Go to cache ?
         //~ if(isset($aAverage[$sColumn]))
         //~ return $aAverage[$sColumn];
+        $step = $this->get("step", "Survey", $this->iSurveyId, '');
         $sQuotedColumn = Yii::app()->db->quoteColumnName($sColumn);
         $iTotal = $this->getCountNumeric($sColumn, $aConditions);
         if ($iTotal <= 0) {
@@ -2214,7 +2296,11 @@ class quickStatAdminParticipationAndStat extends PluginBase
         }
         $oCriteria = new CDbCriteria();
         $oCriteria->select = "SUM({$sQuotedColumn}) as SUM";
-        $oCriteria->condition = "submitdate IS NOT NULL";
+        if ($step === '') {
+            $oCriteria->condition = "submitdate IS NOT NULL";
+        } elseif (intval($step) > 0) {
+            $oCriteria->condition = "lastpage >= " . intval($step);
+        }
         $oCriteria->addCondition(
             "concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}"
         );
@@ -2236,9 +2322,14 @@ class quickStatAdminParticipationAndStat extends PluginBase
             }
             if (tableExists("{{tokens_{$this->iSurveyId}}}")) {
                 /* Manually construct where command ... */
-                $sSelect =
-                    "submitdate IS NOT NULL" .
-                    " AND concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}";
+                $step = $this->get("step", "Survey", $this->iSurveyId, '');
+                $sWhere = "";
+                if ($step === '' || !$this->get("step", "Survey", $this->iSurveyId, 0)) {
+                    $sWhere = "submitdate IS NOT NULL";
+                } elseif (intval($step) > 0) {
+                    $sWhere = "lastpage >= " . intval($step);
+                }                    
+                $sWhere .= " AND concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}";
                 $params = [];
                 $countParams = 1;
                 foreach ($aConditions as $column => $values) {
@@ -2249,7 +2340,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                             $params[":p{$countParams}"] = $value;
                             $countParams++;
                         }
-                        $sSelect .=
+                        $sWhere .=
                             " AND " .
                             Yii::app()->db->quoteColumnName($column) .
                             " IN (" .
@@ -2257,7 +2348,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                             ")";
                     } else {
                         $params[":p{$countParams}"] = $values;
-                        $sSelect .=
+                        $sWhere .=
                             " AND " .
                             Yii::app()->db->quoteColumnName($column) .
                             "= :p{$countParams}";
@@ -2269,7 +2360,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     ->select("SUM({$sQuotedColumn}) as SUM")
                     ->from("{{survey_{$this->iSurveyId}}} s")
                     ->join("{{tokens_{$this->iSurveyId}}} t", "s.token=t.token")
-                    ->where($sSelect, $params)
+                    ->where($sWhere, $params)
                     ->queryScalar();
             } else {
                 $iSum = (int) Yii::app()
@@ -2301,10 +2392,15 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aMax = []; // Go to cache ?
         //~ if(isset($aMax[$sColumn]))
         //~ return $aMax[$sColumn];
+        $step = $this->get("step", "Survey", $this->iSurveyId, '');
         $sQuotedColumn = Yii::app()->db->quoteColumnName($sColumn);
         $oCriteria = new CDbCriteria();
         $oCriteria->select = "MAX({$sQuotedColumn})";
-        $oCriteria->condition = "submitdate IS NOT NULL";
+        if ($step === '') {
+            $oCriteria->condition = "submitdate IS NOT NULL";
+        } elseif (intval($step) > 0) {
+            $oCriteria->condition = "lastpage >= " . intval($step);
+        }
         $oCriteria->addCondition(
             "concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}"
         );
@@ -2333,9 +2429,14 @@ class quickStatAdminParticipationAndStat extends PluginBase
         //~ $aCountNumeric=array(); // Go to cache ?
         //~ if(isset($aCountNumeric[$sColumn]))
         //~ return $aCountNumeric[$sColumn];
+        $step = $this->get("step", "Survey", $this->iSurveyId, '');
         $sQuotedColumn = Yii::app()->db->quoteColumnName($sColumn);
         $oCriteria = new CDbCriteria();
-        $oCriteria->condition = "submitdate IS NOT NULL";
+        if ($step === '') {
+            $oCriteria->condition = "submitdate IS NOT NULL";
+        } elseif (intval($step) > 0) {
+            $oCriteria->condition = "lastpage >= " . intval($step);
+        }
         $oCriteria->addCondition(
             "concat('',{$sQuotedColumn} * 1) = {$sQuotedColumn}"
         );
