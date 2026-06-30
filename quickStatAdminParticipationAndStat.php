@@ -8,7 +8,7 @@
  * @copyright 2016-2025 Advantage <http://www.advantage.fr>
  * @copyright 2025 PAQS <http://www.paqs.be>
  * @license AGPL v3
- * @version 5.5.0
+ * @version 5.5.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -965,9 +965,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
             /* @todo flash message*/
             return;
         }
-        $tablename = "{{responses_{$iSurveyId}}}";
+        $tablename = "{{responses_{$surveyId}}}";
         if (App()->getConfig('versionnumber') < 7){
-            $tablename = "{{survey_{$iSurveyId}}}";
+            $tablename = "{{survey_{$surveyId}}}";
         }
         $allQuestionsIds = array_unique(array_merge(
             (array) $this->get("questionCross", "Survey", $surveyId),
