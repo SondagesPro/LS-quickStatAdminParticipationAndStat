@@ -4,11 +4,11 @@
  * Shown quick stat to allowed admin user
  *
  * @author Denis Chenu <denis@sondages.pro>
- * @copyright 2016-2025 Denis Chenu <https://www.sondages.pro>
+ * @copyright 2016-2026 Denis Chenu <https://www.sondages.pro>
  * @copyright 2016-2025 Advantage <http://www.advantage.fr>
  * @copyright 2025 PAQS <http://www.paqs.be>
  * @license AGPL v3
- * @version 5.4.0
+ * @version 5.5.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -121,10 +121,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 "function" => "stat",
                 "sid" => $surveyId,
             ]);
-            if (tableExists("{{survey_{$surveyId}}}")) {
+            if (self::isSurveyActive($surveyId)) {
                 $settings["statlink"] = [
                     "type" => "info",
-                    'content' => CHtml::link($this->translate("Link to statitics"), $accesUrl, array("target" => '_blank','class' => 'btn btn-block btn-default btn-lg')),
+                    'content' => "<div class='d-grid'>" . CHtml::link($this->translate("Link to statitics"), $accesUrl, array("target" => '_blank','class' => 'btn btn-block btn-default btn-outline-secondary btn-lg')) . "</div>",
                 ];
             }
         }
@@ -140,7 +140,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             );
             $settings["management"] = [
                 "type" => "info",
-                'content' => CHtml::link($this->translate("Manage statistics"), $managementUrl, array('class' => 'btn btn-block btn-default btn-lg')),
+                'content' => "<div class='d-grid'>" . CHtml::link($this->translate("Manage statistics"), $managementUrl, array('class' => 'btn btn-block btn-default btn-outline-secondary btn-lg')) . "</div>",
             ];
         }
         if (empty($settings)) {
@@ -229,7 +229,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             "function" => "stat",
             "sid" => $surveyId,
         ]);
-        if (tableExists("{{survey_{$surveyId}}}")) {
+        if (self::isSurveyActive($surveyId)) {
             $aSettings["statlink"] = [
                 "type" => "info",
                 "content" =>
@@ -961,9 +961,13 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     private function createResponseIndex($surveyId)
     {
-        if (!tableExists("{{survey_{$surveyId}}}")) {
+        if (!self::isSurveyActive($surveyId)) {
             /* @todo flash message*/
             return;
+        }
+        $tablename = "{{responses_{$iSurveyId}}}";
+        if (App()->getConfig('versionnumber') < 7){
+            $tablename = "{{survey_{$iSurveyId}}}";
         }
         $allQuestionsIds = array_unique(array_merge(
             (array) $this->get("questionCross", "Survey", $surveyId),
@@ -972,7 +976,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         ));
         $aRealReponseAttributes = array_keys(
             Yii::app()->db->schema->getTable(
-                "{{survey_{$surveyId}}}"
+                "{$tablename}"
             )->columns
         );
 
@@ -981,15 +985,18 @@ class quickStatAdminParticipationAndStat extends PluginBase
             if (!$oQuestion) {
                 continue;
             }
-            $column = $surveyId . "X" . $oQuestion->gid . "X" . $oQuestion->qid;
+            $column = "Q" . $oQuestion->qid;
+            if (App()->getConfig('versionnumber') < 7) {
+                $column = $surveyId . "X" . $oQuestion->gid . "X" . $oQuestion->qid;
+            }
             if (in_array($column, $aRealReponseAttributes)) {
                 $indexName = "qickstat_" . $column;
                 try {
-                    App()->getDb()->createCommand()->dropIndex($indexName, "{{survey_{$surveyId}}}");
+                    App()->getDb()->createCommand()->dropIndex($indexName, "{$tablename}");
                 } catch (Exception $ex) {
                     // index not exist : not an error
                 }
-                if (App()->getDb()->createCommand()->createIndex($indexName, "{{survey_{$surveyId}}}", $column)) {
+                if (App()->getDb()->createCommand()->createIndex($indexName, "{$tablename}", $column)) {
                     App()->setFlashMessage(
                         sprintf($this->gT("Index created on column %s (question %s) response table."), $column, $oQuestion->title),
                         "success"
@@ -1053,7 +1060,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     gT("You do not have sufficient rights to access this page.")
                 );
             }
-            if (tableExists("{{survey_{$oSurvey->sid}}}")) {
+            if (self::isSurveyActive($oSurvey->sid)) {
                 $oSurvey = Survey::model()
                     ->with("languagesettings")
                     ->find("sid=:sid", [":sid" => $this->iSurveyId]);
@@ -1282,7 +1289,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
             }
             if (!empty($aoSingleQuestion)) {
                 foreach ($aoSingleQuestion as $oSingleQuestion) {
-                    $sColumn = "{$oSingleQuestion->sid}X{$oSingleQuestion->gid}X{$oSingleQuestion->qid}";
+                    $sColumn = "Q{$oSingleQuestion->qid}";
+                    if (App()->getConfig('versionnumber') < 7) {
+                        $sColumn = "{$oSingleQuestion->sid}X{$oSingleQuestion->gid}X{$oSingleQuestion->qid}";
+                    }
                     $aData = [];
                     $oAnswers = Answer::model()
                         ->with("answerl10ns")
@@ -1407,11 +1417,17 @@ class quickStatAdminParticipationAndStat extends PluginBase
                                 ]
                             );
                             if ($oXQuestion) {
-                                $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}_{$oXQuestion->title}";
+                                $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}_{$oXQuestion->qid}";
+                                if (App()->getConfig('versionnumber') < 7 ) {
+                                    $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}_{$oXQuestion->title}";
+                                } 
                             }
                         }
                     } else {
-                        $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}";
+                        $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}";
+                        if (App()->getConfig('versionnumber') < 7 ) {
+                            $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}";
+                        }
                         switch ($oParentQuestion->type) {
                             case "F":
                                 $sQuotedColumn = Yii::app()->db->quoteColumnName(
@@ -1454,7 +1470,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                             false
                         );
                 } else {
-                    $sColumnName = "{$oQuestion->sid}X{$oQuestion->gid}X{$oQuestion->qid}";
+                    $sColumnName = "Q{$oQuestion->qid}";
                     $sTitle = viewHelper::flatEllipsizeText(
                         $oQuestion->questionl10ns[$this->surveyLanguage]->question,
                         true,
@@ -1651,7 +1667,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 ->findAll($oCriteria);
             if (!empty($aoSingleQuestion)) {
                 foreach ($aoSingleQuestion as $oSingleQuestion) {
-                    $sColumn = "{$oSingleQuestion->sid}X{$oSingleQuestion->gid}X{$oSingleQuestion->qid}";
+                    $sColumn = "Q{$oSingleQuestion->qid}";
+                    if (App()->getConfig('versionnumber') < 7) {
+                        $sColumn = "{$oSingleQuestion->sid}X{$oSingleQuestion->gid}X{$oSingleQuestion->qid}";
+                    }
                     $oAnswers = Answer::model()
                         ->with("answerl10ns")
                         ->findAll([
@@ -1790,6 +1809,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 return $this->getDailyResponsesRateByStep($iSurveyId);
             }
         }
+        $tablename = "{{responses_{$iSurveyId}}}";
+        if (App()->getConfig('versionnumber') < 7){
+            $tablename = "{{survey_{$iSurveyId}}}";
+        }
         $aDailyResponsesRateArray = Yii::app()
             ->db->createCommand()
             ->select(
@@ -1798,7 +1821,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     ",COUNT(*) AS " .
                     Yii::app()->db->quoteColumnName("nb")
             )
-            ->from("{{survey_{$iSurveyId}}} s")
+            ->from("{$tablename} s")
             ->where("{$state} IS NOT NULL")
             ->order("date")
             ->group("date")
@@ -1822,6 +1845,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if ($step > 0) {
             $where = "datestamp IS NOT NULL and lastpage >= $step";
         }
+        $tablename = "{{responses_{$iSurveyId}}}";
+        if (App()->getConfig('versionnumber') < 7){
+            $tablename = "{{survey_{$iSurveyId}}}";
+        }
         $aDailyResponsesRateArray = Yii::app()
             ->db->createCommand()
             ->select(
@@ -1830,7 +1857,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     ",COUNT(*) AS " .
                     Yii::app()->db->quoteColumnName("nb")
             )
-            ->from("{{survey_{$iSurveyId}}} s")
+            ->from("{tablename} s")
             ->where($where)
             ->order("date")
             ->group("date")
@@ -2073,7 +2100,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             Yii::app()->language = $lang;
         }
         $oTemplate = Template::model()->getInstance(
-            getGlobalSetting("defaulttheme")
+            App()->getConfig("defaulttheme")
         );
         $twigRenderData = ["aStatPanel" => $this->aRenderData];
         $twigRenderData["aSurveyInfo"] = [
@@ -2203,7 +2230,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aStatSurveys = [];
         if (!empty($aSurveys)) {
             foreach ($aSurveys as $oSurvey) {
-                if (tableExists("{{survey_{$oSurvey->sid}}}")) {
+                if (self::isSurveyActive($oSurvey->sid)) {
                     $title = $this->get(
                         "alternateTitle",
                         "Survey",
@@ -2287,6 +2314,11 @@ class quickStatAdminParticipationAndStat extends PluginBase
         //~ $aAverage=array(); // Go to cache ?
         //~ if(isset($aAverage[$sColumn]))
         //~ return $aAverage[$sColumn];
+
+        $tablename = "{{responses_{$this->iSurveyId}}}";
+        if (App()->getConfig('versionnumber') < 7){
+            $tablename = "{{survey_{$this->iSurveyId}}}";
+        }
         $step = $this->get("step", "Survey", $this->iSurveyId, '');
         $sQuotedColumn = Yii::app()->db->quoteColumnName($sColumn);
         $iTotal = $this->getCountNumeric($sColumn, $aConditions);
@@ -2358,7 +2390,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 $iSum = (int) Yii::app()
                     ->db->createCommand()
                     ->select("SUM({$sQuotedColumn}) as SUM")
-                    ->from("{{survey_{$this->iSurveyId}}} s")
+                    ->from("{$tablename} s")
                     ->join("{{tokens_{$this->iSurveyId}}} t", "s.token=t.token")
                     ->where($sWhere, $params)
                     ->queryScalar();
@@ -2531,5 +2563,18 @@ class quickStatAdminParticipationAndStat extends PluginBase
             return $aDateFormats[$iDateFormat];
         }
         return $aDateFormats[6];
+    }
+
+    /**
+     * Get if survey if active, checking response table
+     * @param integre $sid
+     * @return boolean
+     */
+    private static function isSurveyActive($sid)
+    {
+        if (App()->getConfig('versionnumber') < 7) {
+            return tableExists("{{survey_{$sid}}}");
+        }
+        return tableExists("{{responses_{$sid}}}");
     }
 }

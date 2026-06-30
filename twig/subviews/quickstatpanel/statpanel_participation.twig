@@ -1,3 +1,5 @@
+{# This file is part of quickStatAdminParticipationAndStat plugin #}
+{# @version 5.5.0 #}
 {% set lang = aStatPanel.language %}
 
 <h1 class="text-primary quickstatpanel-title{% if(strpos("#" ~ aSurveyInfo.class.body, 'fruity_twentythree')) %} h4{% endif %}">{{ aStatPanel.titre }}</h1>
@@ -19,7 +21,7 @@
   {% if aStatPanel.showAdminSurvey %}
     <li role="presentation" class="nav-item">
         <a class="nav-link" href="{{ createUrl(
-            "surveyAdministration/view",
+            "admin/pluginhelper/sa/sidebody",
              ({
                 'plugin' : aStatPanel.className,
                 'function' : 'satisfaction',
