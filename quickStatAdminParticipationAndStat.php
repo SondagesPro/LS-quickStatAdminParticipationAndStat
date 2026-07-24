@@ -233,9 +233,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $aSettings["statlink"] = [
                 "type" => "info",
                 "content" =>
-                    "<h5 class='alert alert-info'>" .
+                    "<h2>" .
                     $this->translate("Link to statitics :") .
-                    "<a href='{$url}'>{$url}</a></h5>",
+                    "<a href='{$url}'>{$url}</a></h2>",
             ];
         } else {
             $aSettings["statlink"] = [
@@ -299,9 +299,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aSettings["CrossTitle"] = [
             "type" => "info",
             "content" =>
-                "<h5 class='alert alert-info'>" .
+                "<h2>" .
                 $this->translate("Participation tab") .
-                "</h5>",
+                "</h2>",
         ];
         if ($oSurvey->datestamp == "Y") {
             $aSettings["participationComment"] = [
@@ -700,9 +700,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $aSettings["SatTitle"] = [
                 "type" => "info",
                 "content" =>
-                    "<h5 class='alert alert-info'>" .
+                    "<h2>" .
                     $this->translate("Satisfaction tab") .
-                    "</h5>",
+                    "</h2>",
             ];
             $aSettings["satisfactionComment"] = [
                 "type" => "html",
@@ -815,9 +815,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $aSettings["IndexTitle"] = [
             "type" => "info",
             "content" =>
-                "<h5 class='alert alert-info'>" .
+                "<h2>" .
                 $this->translate("Create index in database") .
-                "</h5>",
+                "</h2>",
         ];
         $aSettings["indexToken"] = [
             "type" => "boolean",
