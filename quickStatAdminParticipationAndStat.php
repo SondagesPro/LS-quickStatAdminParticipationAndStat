@@ -183,6 +183,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $menuItem = new \LimeSurvey\Menu\MenuItem($aMenuItem);
         $event->append('menuItems', array($menuItem));
     }
+
     /** The settings on own page */
     public function actionSettings($surveyId)
     {
@@ -845,6 +846,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
             throw new CHttpException(403);
         }
         $aSettings = App()->getRequest()->getPost('quickStatAdminParticipationAndStat');
+        if (empty($aSettings)) {
+            throw new CHttpException(400);
+        }
         /* Fix not set dropdown */
         $aSettings["tokenAttributes"] = isset($aSettings["tokenAttributes"])
             ? $aSettings["tokenAttributes"]
@@ -966,7 +970,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             return;
         }
         $tablename = "{{responses_{$surveyId}}}";
-        if (App()->getConfig('versionnumber') < 7){
+        if (App()->getConfig('versionnumber') < 7) {
             $tablename = "{{survey_{$surveyId}}}";
         }
         $allQuestionsIds = array_unique(array_merge(
@@ -1016,13 +1020,10 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     public function newDirectRequest()
     {
-        if (!$this->getEvent()) {
-            throw new CHttpException(403);
-        }
-        Yii::import("application.helpers.viewHelper");
         if ($this->event->get("target") != __CLASS__) {
             return;
         }
+        Yii::import("application.helpers.viewHelper");
         if (Yii::app()->user->getIsGuest()) {
             $this->isCurrentUrl = true;
             App()->user->setReturnUrl(App()->request->requestUri);
@@ -1048,49 +1049,46 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 404,
                 gT("The survey does not seem to exist.")
             );
-        } elseif ($this->iSurveyId) {
-            if (
-                !Permission::model()->hasSurveyPermission(
-                    $this->iSurveyId,
-                    "statistics"
-                )
-            ) {
-                throw new CHttpException(
-                    401,
-                    gT("You do not have sufficient rights to access this page.")
-                );
-            }
-            if (self::isSurveyActive($oSurvey->sid)) {
-                $oSurvey = Survey::model()
-                    ->with("languagesettings")
-                    ->find("sid=:sid", [":sid" => $this->iSurveyId]);
-                if (in_array(App()->language, $oSurvey->getAllLanguages())) {
-                    $this->surveyLanguage = App()->language;
-                } else {
-                    $this->surveyLanguage = $oSurvey->language;
-                }
-                $this->aRenderData["titre"] = $this->get(
-                    "alternateTitle",
-                    "Survey",
-                    $oSurvey->sid,
-                    ""
-                );
-                if (empty($this->aRenderData["titre"])) {
-                    $this->aRenderData["titre"] = $oSurvey->getLocalizedTitle();
-                }
-                $this->aRenderData["oSurvey"] = $oSurvey;
-                $sAction = in_array($sAction, [
-                    "participation",
-                    "satisfaction",
-                    "export",
-                ])
-                    ? $sAction
-                    : "participation";
-            } else {
-                $sAction = "list";
-            }
+        }
+        if (
+            !Permission::model()->hasSurveyPermission(
+                $oSurvey->sid,
+                "statistics"
+            )
+        ) {
+            throw new CHttpException(
+                401,
+                gT("You do not have sufficient rights to access this page.")
+            );
+        }
+        if (!self::isSurveyActive($oSurvey->sid)) {
+            throw new CHttpException(
+                400,
+                gT("The survey is not activated.")
+            );
         } else {
-            $sAction = false;
+            $this->setSurvey($oSurvey);
+            $oSurvey = Survey::model()
+                ->with("languagesettings")
+                ->find("sid=:sid", [":sid" => $this->iSurveyId]);
+
+            $this->aRenderData["titre"] = $this->get(
+                "alternateTitle",
+                "Survey",
+                $oSurvey->sid,
+                ""
+            );
+            if (empty($this->aRenderData["titre"])) {
+                $this->aRenderData["titre"] = $oSurvey->getLocalizedTitle();
+            }
+            $this->aRenderData["oSurvey"] = $oSurvey;
+            $sAction = in_array($sAction, [
+                "participation",
+                "satisfaction",
+                "export",
+            ])
+                ? $sAction
+                : "participation";
         }
         switch ($sAction) {
             case "participation":
@@ -1108,6 +1106,21 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 break;
         }
     }
+
+    /**
+     * Set survey
+     * @param \Survey
+     * @throw CHttpException
+     * @return void
+     */
+    private function setSurvey($oSurvey)
+    {
+        $this->iSurveyId = $oSurvey->sid;
+        $this->surveyLanguage = $oSurvey->language;
+        if (in_array(App()->language, $oSurvey->getAllLanguages())) {
+            $this->surveyLanguage = App()->language;
+        }
+    }
     /**
      * Get participation for this survey
      * @return void (rendering)
@@ -1118,9 +1131,23 @@ class quickStatAdminParticipationAndStat extends PluginBase
             throw new CHttpException(500);
         }
         $oSurvey = $this->aRenderData["oSurvey"];
+        $participationRenderData = $this->getParticipationRenderData($oSurvey);
+        $this->aRenderData = array_merge($this->aRenderData, $participationRenderData);
+        $this->ownRender("participation");
+    }
+
+    /**
+     * Get the render data for participation
+     * @param \Survey oSurvey
+     * @return array
+     */
+    public function getParticipationRenderData(\Survey $oSurvey): array
+    {
+        $this->setSurvey($oSurvey);
+        $renderData = [];
         if ($oSurvey->datestamp == "Y") {
             if ($this->get("dailyRate", "Survey", $oSurvey->sid, 1)) {
-                $aDailyResponses = $this->aRenderData[
+                $aDailyResponses = $renderData[
                     "aDailyResponses"
                 ] = $this->getDailyResponsesRate($this->iSurveyId);
             }
@@ -1135,7 +1162,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                         $sum += $nb;
                         $aDailyResponsesCumulative[$date] = $sum;
                     }
-                    $this->aRenderData[
+                    $renderData[
                         "aDailyResponsesCumulative"
                     ] = $aDailyResponsesCumulative;
                 }
@@ -1149,7 +1176,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     $this->settings["dailyRateEnterAllow"]["default"]
                 )
             ) {
-                $this->aRenderData[
+                $renderData[
                     "aDailyEnter"
                 ] = $this->getDailyResponsesRate($this->iSurveyId, "startdate");
             }
@@ -1162,22 +1189,27 @@ class quickStatAdminParticipationAndStat extends PluginBase
                     $this->settings["dailyRateActionAllow"]["default"]
                 )
             ) {
-                $this->aRenderData[
+                $renderData[
                     "aDailyAction"
                 ] = $this->getDailyResponsesRate($this->iSurveyId, "datestamp");
             }
         }
-        $this->aRenderData["aResponses"] = $this->getParticipationRate(
+        $renderData["aResponses"] = $this->getParticipationRate(
             $this->iSurveyId
         );
-        $this->aRenderData["htmlComment"] = $this->get(
+        $renderData["htmlComment"] = $this->get(
             "participationComment",
             "Survey",
             $oSurvey->sid,
             ""
         );
-        $this->ownRender("participation");
+        return $renderData;
     }
+
+    /**
+     * get the participation rate data
+     * @return []
+     */
     protected function getParticipationRate($iSurveyId)
     {
         $oSurvey = Survey::model()->findByPk($iSurveyId);
@@ -1342,6 +1374,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         }
         return $aResponses;
     }
+
     /**
      * Show Satisfaction for this survey
      * @return void (rendering)
@@ -1352,6 +1385,20 @@ class quickStatAdminParticipationAndStat extends PluginBase
             throw new CHttpException(500);
         }
         $oSurvey = $this->aRenderData["oSurvey"];
+        $satisfactionRenderData = $this->getSatisfactionRenderData($oSurvey);
+        $this->aRenderData = array_merge($this->aRenderData, $satisfactionRenderData);
+        $this->ownRender("satisfaction");
+    }
+
+    /**
+     * Get the render data for Satisfaction
+     * @param \Survey oSurvey
+     * @return array
+     */
+    public function getSatisfactionRenderData(\Survey $oSurvey): array
+    {
+        $this->setSurvey($oSurvey);
+        $renderData = [];
         $aResponses = [];
         /* Global */
         $aQuestionsNumeric = $this->get(
@@ -1418,14 +1465,14 @@ class quickStatAdminParticipationAndStat extends PluginBase
                             );
                             if ($oXQuestion) {
                                 $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}_{$oXQuestion->qid}";
-                                if (App()->getConfig('versionnumber') < 7 ) {
+                                if (App()->getConfig('versionnumber') < 7) {
                                     $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}_{$oXQuestion->title}";
-                                } 
+                                }
                             }
                         }
                     } else {
                         $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}";
-                        if (App()->getConfig('versionnumber') < 7 ) {
+                        if (App()->getConfig('versionnumber') < 7) {
                             $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}";
                         }
                         switch ($oParentQuestion->type) {
@@ -1752,17 +1799,17 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 $aReorderSatisfactions[$iSatId]['aResponses'][$repKey]['type'] = isset($aResponse['type']) ? $aResponse['type'] : 'chart';
             }
         }
-        $this->aRenderData["aReorderSatisfactions"] = $aReorderSatisfactions;
-        $this->aRenderData["htmlComment"] = $this->get(
+        $renderData["aReorderSatisfactions"] = $aReorderSatisfactions;
+        $renderData["htmlComment"] = $this->get(
             "satisfactionComment",
             "Survey",
             $oSurvey->sid,
             ""
         );
-        $this->ownRender("satisfaction");
+        return $renderData;
     }
     /**
-     * Export in CSV the fayly response rate
+     * Export in CSV the dayly response rate
      */
     public function actionExportData()
     {
@@ -1810,7 +1857,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             }
         }
         $tablename = "{{responses_{$iSurveyId}}}";
-        if (App()->getConfig('versionnumber') < 7){
+        if (App()->getConfig('versionnumber') < 7) {
             $tablename = "{{survey_{$iSurveyId}}}";
         }
         $aDailyResponsesRateArray = Yii::app()
@@ -1846,7 +1893,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             $where = "datestamp IS NOT NULL and lastpage >= $step";
         }
         $tablename = "{{responses_{$iSurveyId}}}";
-        if (App()->getConfig('versionnumber') < 7){
+        if (App()->getConfig('versionnumber') < 7) {
             $tablename = "{{survey_{$iSurveyId}}}";
         }
         $aDailyResponsesRateArray = Yii::app()
@@ -2179,7 +2226,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
     }
 
     /**
-     * Add needed functgion to twig
+     * Add needed function to twig
      */
     private function updateTwigConfiguration()
     {
@@ -2313,12 +2360,8 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     private function getAverage($sColumn, $aConditions = null)
     {
-        //~ $aAverage=array(); // Go to cache ?
-        //~ if(isset($aAverage[$sColumn]))
-        //~ return $aAverage[$sColumn];
-
         $tablename = "{{responses_{$this->iSurveyId}}}";
-        if (App()->getConfig('versionnumber') < 7){
+        if (App()->getConfig('versionnumber') < 7) {
             $tablename = "{{survey_{$this->iSurveyId}}}";
         }
         $step = $this->get("step", "Survey", $this->iSurveyId, '');
