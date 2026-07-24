@@ -39,4 +39,11 @@ No support is done on issues, for professional support, please use our [contact 
 - Copyright © 2016-2023 Denis Chenu <http://sondages.pro>
 - Copyright © 2016-2023 Advantage <http://www.advantage.fr>
 - Licence : GNU Affero General Public License <https://www.gnu.org/licenses/agpl-3.0.html>
-- [Donate](https://support.sondages.pro/open.php?topicId=12), [Liberapay](https://liberapay.com/SondagesPro/), [OpenCollective](https://opencollective.com/sondagespro)
+
+## Acknowledgements
+
+If you find this project useful, you can support its development through [Donate](https://support.sondages.pro/open.php?topicId=12), [Liberapay](https://liberapay.com/SondagesPro/), or [OpenCollective](https://opencollective.com/sondagespro). Thank you!
+
+Code quality and security are continuously analyzed by [SonarCloud](https://sonarcloud.io/) [CodeRabbit](https://coderabbit.ai/), [Snyk](https://snyk.io/), and [Semgrep](https://semgrep.dev/).
+
+Thanks to GitLab for providing the hosting platform, and to SonarCloud, CodeRabbit, Snyk, and Semgrep for making their services available to open source projects.
