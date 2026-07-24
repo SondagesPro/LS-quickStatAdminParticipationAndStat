@@ -2026,6 +2026,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $this->aRenderData["jqplotUrl"] = Yii::app()->assetManager->publish(
             dirname(__FILE__) . "/vendor/jquery.jqplot"
         );
+
         $this->aRenderData["subview"] = "subviews.{$type}";
         $this->aRenderData["type"] = $type;
         $this->aRenderData["surveyList"] = $this->getSurveyList();
@@ -2051,6 +2052,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if (!in_array($language, $oSurvey->getAllLanguages())) {
             $language = $oSurvey->language;
         }
+        $twigRenderData["currentlanguage"] = $language;
         $twigRenderData["aSurveyInfo"] = getSurveyInfo(
             $this->iSurveyId,
             $language

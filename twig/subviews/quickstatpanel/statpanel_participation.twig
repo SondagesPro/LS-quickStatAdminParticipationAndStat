@@ -12,7 +12,8 @@
              ({
                 'plugin' : aStatPanel.className,
                 'function' : 'satisfaction',
-                'sid' : aSurveyInfo.sid
+                'sid' : aSurveyInfo.sid,
+                'lang': currentlanguage
              })
             ) }}"
         >{{ lang["Satisfaction"] }} </a>
@@ -21,11 +22,13 @@
   {% if aStatPanel.showAdminSurvey %}
     <li role="presentation" class="nav-item">
         <a class="nav-link" href="{{ createUrl(
-            "admin/pluginhelper/sa/sidebody",
+            "admin/pluginhelper",
              ({
+                'sa' : 'sidebody',
                 'plugin' : aStatPanel.className,
-                'function' : 'satisfaction',
-                'sid' : aSurveyInfo.sid
+                'method' : 'actionSettings',
+                'surveyId' : aSurveyInfo.sid,
+                'lang': currentlanguage
              })
             ) }}"
         >{{ lang["Administration"] }} </a>

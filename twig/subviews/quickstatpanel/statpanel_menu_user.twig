@@ -1,18 +1,22 @@
-<li class="{{ aSurveyInfo.class.indexmenugli }} dropdown">
-    <a class="{{ aSurveyInfo.class.indexmenuglia }} dropdown-toggle" {{ aSurveyInfo.attr.indexmenuglia }} href="#" >
+<li class="nav-item dropdown dropdown">
+    <a class="nav-link dropdown-toggle" role="button" href="#" data-bs-toggle="dropdown" aria-expanded="false" data-navtargetid="qsapas-user-dropdown" >
         {{ aStatPanel.userName }}
-        <span class="{{ aSurveyInfo.class.indexmenugspan }} caret" {{ aSurveyInfo.attr.indexmenugspan }}></span>
     </a>
-    <ul class="{{ aSurveyInfo.class.indexmenusgul }} dropdown-menu" {{ aSurveyInfo.attr.indexmenusgul }}>
+    <ul id="qsapas-user-dropdown" class="dropdown-menu dropdown-menu-end">
+        {% if aSurveyInfo.class.body == 'fruity_twentythree' %}
+        <li class="index-item">
+            <a class="back-link nav-link" href="#">{{ gT("Previous") }}</a>
+        </li>
+        {% endif %}
         {% if aStatPanel.showAdmin %}
-            <li class=""  {{ aSurveyInfo.attr.indexmenusgli }}>
-                <a href="{{ createUrl('/admin/index') }}">
+            <li>
+                <a class="dropdown-item" href="{{ createUrl('surveyAdministration/view',{'surveyid': aSurveyInfo.sid}) }}">
                 {{ gT('Administration') }}
                 </a>
             </li>
         {% endif %}
-        <li class=""  {{ aSurveyInfo.attr.indexmenusgli }}>
-            <a href="{{ createUrl('/admin/authentication',{'sa': 'logout'}) }}">
+        <li>
+            <a class="dropdown-item" href="{{ createUrl('/admin/authentication',{'sa': 'logout'}) }}">
             {{ gT('Logout') }}
             </a>
         </li>
