@@ -4,29 +4,13 @@
 <ul class="nav nav-tabs">
   <li role="presentation" class="active"><a href="#">{{ lang["Participation"] }}</a></li>
   {% if aStatPanel.showSatisfaction %}
-    <li role="presentation">
-        <a href="{{ createUrl(
-            "plugins/direct",
-             ({
-                'plugin' : aStatPanel.className,
-                'function' : 'satisfaction',
-                'sid' : aSurveyInfo.sid
-             })
-            ) }}"
-        >{{ lang["Satisfaction"] }} </a>
+    <li role="presentation" class="nav-item">
+        <a href="{{ aStatPanel.urls.satisfaction }}">{{ lang["Satisfaction"] }} </a>
     </li>
   {% endif %}
   {% if aStatPanel.showAdminSurvey %}
     <li role="presentation">
-        <a href="{{ createUrl(
-            "surveyAdministration/view",
-             ({
-                'plugin' : aStatPanel.className,
-                'function' : 'satisfaction',
-                'sid' : aSurveyInfo.sid
-             })
-            ) }}"
-        >{{ lang["Administration"] }} </a>
+        <a href="{{ aStatPanel.urls.administration }}">{{ lang["Administration"] }} </a>
     </li>
   {% endif %}
 </ul>

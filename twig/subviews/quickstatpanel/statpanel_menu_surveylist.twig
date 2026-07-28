@@ -1,3 +1,4 @@
+{% if aStatPanel.userName %}
 <li class="nav-item"><a  class="nav-link" href="{{ createUrl(
             "plugins/direct",
              ({
@@ -5,3 +6,4 @@
              })
             ) }}"
         >{{ gT('Surveys') }}</a></li>
+{% endif %}
