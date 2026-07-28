@@ -3,30 +3,14 @@
 <h1 class="text-primary quickstatpanel-title">{{ aStatPanel.titre }}</h1>
 <ul class="nav nav-tabs">
     <li role="presentation">
-        <a href="{{ createUrl(
-            "plugins/direct",
-             ({
-                'plugin' : aStatPanel.className,
-                'function' : 'participation',
-                'sid' : aSurveyInfo.sid
-             })
-            ) }}"
-        >{{ lang["Participation"] }} </a>
+        <a href="{{ aStatPanel.urls.participation }}">{{ lang["Participation"] }} </a>
     </li>
     <li role="presentation" class="active">
         <a href="#">{{ lang["Satisfaction"] }} </a>
     </li>
   {% if aStatPanel.showAdminSurvey %}
     <li role="presentation">
-        <a href="{{ createUrl(
-            "surveyAdministration/view",
-             ({
-                'plugin' : aStatPanel.className,
-                'function' : 'satisfaction',
-                'sid' : aSurveyInfo.sid
-             })
-            ) }}"
-        >{{ lang["Administration"] }} </a>
+        <a href="{{ aStatPanel.urls.administration }}">{{ lang["Administration"] }} </a>
     </li>
   {% endif %}
 </ul>

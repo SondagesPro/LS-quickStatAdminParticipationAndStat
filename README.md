@@ -19,7 +19,7 @@ This version is for LimeSurvey 4 and up and was tested on LimeSurvey 5 and LimeS
 
 ## Usage
 
-Global settings offer what survey admin can choose for particpation.
+Global settings offer what survey admin can choose for participation.
 
 In Survey settings you can choose the question to show for participation and question for satisfaction.
 
@@ -38,6 +38,7 @@ No support is done on issues, for professional support, please use our [contact 
 - HomePage [extensions.sondages.pro](https://extensions.sondages.pro/export-statistics-and-database/quick-statistics-panel-participation-and-satisfaction/)
 - Copyright © 2016-2023 Denis Chenu <http://sondages.pro>
 - Copyright © 2016-2023 Advantage <http://www.advantage.fr>
+- Copyright © 2025-2026 PAQS <http://www.paqs.be>
 - Licence : GNU Affero General Public License <https://www.gnu.org/licenses/agpl-3.0.html>
 
 ## Acknowledgements

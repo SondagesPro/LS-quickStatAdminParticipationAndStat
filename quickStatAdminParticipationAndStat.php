@@ -6,9 +6,9 @@
  * @author Denis Chenu <denis@sondages.pro>
  * @copyright 2016-2026 Denis Chenu <https://www.sondages.pro>
  * @copyright 2016-2025 Advantage <http://www.advantage.fr>
- * @copyright 2025 PAQS <http://www.paqs.be>
+ * @copyright 2025-2026 PAQS <http://www.paqs.be>
  * @license AGPL v3
- * @version 5.5.1
+ * @version 5.7.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -296,7 +296,42 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 '1'
             ),
         ];
-
+        if (Permission::model()->hasSurveyPermission($oSurvey->sid, 'statistics', 'read')) {
+            $aSettings["AccessCodeTitle"] = [
+                "type" => "info",
+                "content" =>
+                    "<h2>" .
+                    $this->translate("Access code") .
+                    "</h2>",
+            ];
+            $currentAccessKey = $this->get("accessKey", "Survey", $surveyId, "");
+            $aSettings["accessKey"] = [
+                "type" => "string",
+                "label" => $this->translate("Non-administrator access code"),
+                'htmlOptions' => [
+                    'pattern' => "[A-Za-z0-9._~-]+",
+                    'title' => sprintf(gT("Only letters, numbers, %s, %s, %s, and %s are allowed."), "'.'", "'_'", "'-'", "'~'"),
+                ],
+                "help" => $this->translate("Allow non-administrators to view and export these statistics using an access code. Enable this option only if you understand the security implications."),
+                "current" => $currentAccessKey,
+            ];
+            if ($currentAccessKey) {
+                $accessCodeUrl = App()->createPublicUrl("plugins/direct", [
+                    "plugin" => $this->getName(),
+                    "function" => "stat",
+                    "sid" => $surveyId,
+                    "accesskey" => $currentAccessKey
+                ]);
+                $aSettings["accesskeylink"] = [
+                    "type" => "string",
+                    "label" => $this->translate("Direct link with access key"),
+                    'htmlOptions' => [
+                        'readonly' => true,
+                    ],
+                    "current" => $accessCodeUrl
+                ];
+            }
+        }
         $aSettings["CrossTitle"] = [
             "type" => "info",
             "content" =>
@@ -880,28 +915,22 @@ class quickStatAdminParticipationAndStat extends PluginBase
             ? $aSettings["questionCrossSatisfactionTable"]
             : null;
         /* Keep value but remove from save */
-        $indexToken = $aSettings['indexToken'];
-        $indexResponse = $aSettings['indexResponse'];
+        $indexToken = $aSettings['indexToken'] ?? false;
+        $indexResponse = $aSettings['indexResponse'] ?? false;
         unset($aSettings['indexToken']);
         unset($aSettings['indexResponse']);
+        /* Filter accessKey */
+        if (Permission::model()->hasSurveyPermission($oSurvey->sid, 'statistics', 'read')) {
+            $aSettings['accessKey'] = preg_replace('/[^A-Za-z0-9._~-]/', '', strval($aSettings['accessKey'] ?? ''));
+        } else {
+            unset($aSettings['accessKey']);
+        }
+        /* Non needed value */
+        unset($aSettings['statlink']);
+        unset($aSettings['accesskeylink']);
 
         foreach ($aSettings as $name => $value) {
-            /* In order use survey setting, if not set, use global, if not set use default */
-            $default = $this->get(
-                $name,
-                null,
-                null,
-                isset($this->settings[$name]["default"])
-                    ? $this->settings[$name]["default"]
-                    : null
-            );
-            $this->set(
-                $name,
-                $value,
-                "Survey",
-                $surveyId,
-                $default
-            );
+            $this->set($name, $value, 'Survey', $surveyId);
         }
         /* Index */
         if ($indexToken) {
@@ -1020,75 +1049,31 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     public function newDirectRequest()
     {
+        if (!$this->getEvent()) {
+            throw new CHttpException(403);
+        }
         if ($this->event->get("target") != __CLASS__) {
             return;
         }
         Yii::import("application.helpers.viewHelper");
-        if (Yii::app()->user->getIsGuest()) {
-            $this->isCurrentUrl = true;
+        $sid = $this->api->getRequest()->getParam("sid");
+        if ($sid) {
+            $this->validateSurveyId($sid);
+            /* sid is valid : get the Survey */
+            $this->iSurveyId = $sid;
+        }
+        $this->setBaseLanguage($this->iSurveyId);
+        if (!$sid && Yii::app()->user->getIsGuest()) {
             App()->user->setReturnUrl(App()->request->requestUri);
             App()->controller->redirect(["/admin/authentication"]);
         }
-        $sAction = $this->event->get("function");
-        $this->iSurveyId = $this->api->getRequest()->getParam("sid");
-        $oSurvey = Survey::model()->findByPK($this->iSurveyId);
-        if (
-            App()
-                ->getRequest()
-                ->getParam("lang")
-        ) {
-            App()->language = App()
-                ->getRequest()
-                ->getParam("lang");
-            Yii::app()->session["statlanguage"] = App()->language;
-        } elseif (Yii::app()->session["statlanguage"]) {
-            App()->language = Yii::app()->session["statlanguage"];
-        }
-        if ($this->iSurveyId && !$oSurvey) {
-            throw new CHttpException(
-                404,
-                gT("The survey does not seem to exist.")
-            );
-        }
-        if (
-            !Permission::model()->hasSurveyPermission(
-                $oSurvey->sid,
-                "statistics"
-            )
-        ) {
-            throw new CHttpException(
-                401,
-                gT("You do not have sufficient rights to access this page.")
-            );
-        }
-        if (!self::isSurveyActive($oSurvey->sid)) {
-            throw new CHttpException(
-                400,
-                gT("The survey is not activated.")
-            );
-        } else {
-            $this->setSurvey($oSurvey);
-            $oSurvey = Survey::model()
-                ->with("languagesettings")
-                ->find("sid=:sid", [":sid" => $this->iSurveyId]);
 
-            $this->aRenderData["titre"] = $this->get(
-                "alternateTitle",
-                "Survey",
-                $oSurvey->sid,
-                ""
-            );
-            if (empty($this->aRenderData["titre"])) {
-                $this->aRenderData["titre"] = $oSurvey->getLocalizedTitle();
-            }
-            $this->aRenderData["oSurvey"] = $oSurvey;
-            $sAction = in_array($sAction, [
-                "participation",
-                "satisfaction",
-                "export",
-            ])
-                ? $sAction
-                : "participation";
+        $sAction = $this->event->get("function");
+        if ($sid && (!$sAction || $sAction == 'stat')) {
+            $sAction = "participation";
+        }
+        if (!$sid && in_array($sAction, ["participation", "satisfaction", "export"])) {
+            throw new CHttpException(400, gT("Invalid parameters."));
         }
         switch ($sAction) {
             case "participation":
@@ -1108,29 +1093,15 @@ class quickStatAdminParticipationAndStat extends PluginBase
     }
 
     /**
-     * Set survey
-     * @param \Survey
-     * @throw CHttpException
-     * @return void
-     */
-    private function setSurvey($oSurvey)
-    {
-        $this->iSurveyId = $oSurvey->sid;
-        $this->surveyLanguage = $oSurvey->language;
-        if (in_array(App()->language, $oSurvey->getAllLanguages())) {
-            $this->surveyLanguage = App()->language;
-        }
-    }
-    /**
      * Get participation for this survey
      * @return void (rendering)
      */
     public function actionParticipation()
     {
-        if (empty($this->aRenderData["oSurvey"])) {
+        if (empty($this->iSurveyId)) {
             throw new CHttpException(500);
         }
-        $oSurvey = $this->aRenderData["oSurvey"];
+        $oSurvey = Survey::model()->findByPk($this->iSurveyId);
         $participationRenderData = $this->getParticipationRenderData($oSurvey);
         $this->aRenderData = array_merge($this->aRenderData, $participationRenderData);
         $this->ownRender("participation");
@@ -1145,16 +1116,17 @@ class quickStatAdminParticipationAndStat extends PluginBase
     {
         $this->setSurvey($oSurvey);
         $renderData = [];
+        $surveyId = $oSurvey->sid;
         if ($oSurvey->datestamp == "Y") {
-            if ($this->get("dailyRate", "Survey", $oSurvey->sid, 1)) {
+            if ($this->get("dailyRate", "Survey", $surveyId, 1)) {
                 $aDailyResponses = $renderData[
                     "aDailyResponses"
-                ] = $this->getDailyResponsesRate($this->iSurveyId);
+                ] = $this->getDailyResponsesRate($surveyId);
             }
-            if ($this->get("dailyRateCumulative", "Survey", $oSurvey->sid, 1)) {
+            if ($this->get("dailyRateCumulative", "Survey", $surveyId, 1)) {
                 $aDailyResponses = isset($aDailyResponses)
                     ? $aDailyResponses
-                    : $this->getDailyResponsesRate($this->iSurveyId);
+                    : $this->getDailyResponsesRate($surveyId);
                 if (!empty($aDailyResponses)) {
                     $aDailyResponsesCumulative = [];
                     $sum = 0;
@@ -1168,7 +1140,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 }
             }
             if (
-                $this->get("dailyRateEnter", "Survey", $oSurvey->sid, 0) &&
+                $this->get("dailyRateEnter", "Survey", $surveyId, 0) &&
                 $this->get(
                     "dailyRateEnterAllow",
                     null,
@@ -1181,7 +1153,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 ] = $this->getDailyResponsesRate($this->iSurveyId, "startdate");
             }
             if (
-                $this->get("dailyRateAction", "Survey", $oSurvey->sid, 0) &&
+                $this->get("dailyRateAction", "Survey", $surveyId, 0) &&
                 $this->get(
                     "dailyRateActionAllow",
                     null,
@@ -1200,7 +1172,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $renderData["htmlComment"] = $this->get(
             "participationComment",
             "Survey",
-            $oSurvey->sid,
+            $surveyId,
             ""
         );
         return $renderData;
@@ -1381,10 +1353,11 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     public function actionSatisfaction()
     {
-        if (empty($this->aRenderData["oSurvey"])) {
+        if (empty($this->iSurveyId)) {
             throw new CHttpException(500);
         }
-        $oSurvey = $this->aRenderData["oSurvey"];
+        $surveyId = $this->iSurveyId;
+        $oSurvey = Survey::model()->findByPk($surveyId);
         $satisfactionRenderData = $this->getSatisfactionRenderData($oSurvey);
         $this->aRenderData = array_merge($this->aRenderData, $satisfactionRenderData);
         $this->ownRender("satisfaction");
@@ -1412,8 +1385,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
         foreach ($aQuestionsNumeric as $iQuestionNumeric) {
             /* find the code column */
             $oQuestion = Question::model()->with("questionl10ns")->find(
-                "t.qid=:qid AND questionl10ns.language=:language",
+                "t.sid=:sid AND t.qid=:qid AND questionl10ns.language=:language",
                 [
+                    ":sid" => $this->iSurveyId,
                     ":qid" => $iQuestionNumeric,
                     ":language" => $this->surveyLanguage,
                 ]
@@ -1464,7 +1438,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                                 ]
                             );
                             if ($oXQuestion) {
-                                $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}_{$oXQuestion->qid}";
+                                $sColumnName = "Q{$oParentQuestion->qid}_S{$oQuestion->qid}_S{$oXQuestion->qid}";
                                 if (App()->getConfig('versionnumber') < 7) {
                                     $sColumnName = "{$oParentQuestion->sid}X{$oParentQuestion->gid}X{$oParentQuestion->qid}{$oQuestion->title}_{$oXQuestion->title}";
                                 }
@@ -1518,6 +1492,9 @@ class quickStatAdminParticipationAndStat extends PluginBase
                         );
                 } else {
                     $sColumnName = "Q{$oQuestion->qid}";
+                    if (App()->getConfig('versionnumber') < 7) {
+                        $sColumnName = "{$oQuestion->sid}X{$oQuestion->gid}X{$oQuestion->qid}";
+                    }
                     $sTitle = viewHelper::flatEllipsizeText(
                         $oQuestion->questionl10ns[$this->surveyLanguage]->question,
                         true,
@@ -1813,10 +1790,11 @@ class quickStatAdminParticipationAndStat extends PluginBase
      */
     public function actionExportData()
     {
-        if (empty($this->aRenderData["oSurvey"])) {
+        if (empty($this->iSurveyId)) {
             throw new CHttpException(500);
         }
-        $oSurvey = $this->aRenderData["oSurvey"];
+        $surveyId = $this->iSurveyId;
+        $oSurvey = Survey::model()->findByPk($surveyId);
         $exportType = "dayresponse";
         $type = App()
             ->getRequest()
@@ -2073,7 +2051,6 @@ class quickStatAdminParticipationAndStat extends PluginBase
         $this->aRenderData["jqplotUrl"] = Yii::app()->assetManager->publish(
             dirname(__FILE__) . "/vendor/jquery.jqplot"
         );
-
         $this->aRenderData["subview"] = "subviews.{$type}";
         $this->aRenderData["type"] = $type;
         $this->aRenderData["surveyList"] = $this->getSurveyList();
@@ -2086,6 +2063,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 "surveysettings",
                 "update"
             ) && !$this->onlyStatAccess();
+        $this->aRenderData["urls"] = $this->getRenderDataUrls($this->iSurveyId);
         $this->aRenderData["showExport"] = Permission::model()->hasSurveyPermission($this->iSurveyId, "response", "export");
         $this->aRenderData["showAdmin"] = !$this->onlyStatAccess();
         $this->aRenderData["className"] = self::$name;
@@ -2093,20 +2071,13 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if (empty($this->iSurveyId)) {
             $this->renderNoSurvey();
         }
+        $surveyId = $this->iSurveyId;
+        $this->aRenderData["titre"] = $this->getRenderDataTitle($surveyId);
         $twigRenderData = ["aStatPanel" => $this->aRenderData];
-        $oSurvey = Survey::model()->findByPK($this->iSurveyId);
-        $language = App()->getLanguage();
-        if (!in_array($language, $oSurvey->getAllLanguages())) {
-            $language = $oSurvey->language;
-        }
-        $twigRenderData["currentlanguage"] = $language;
-        $twigRenderData["aSurveyInfo"] = getSurveyInfo(
-            $this->iSurveyId,
-            $language
-        );
+        $twigRenderData["aSurveyInfo"] = getSurveyInfo($surveyId, App()->getLanguage());
         $twigRenderData["aSurveyInfo"]["include_content"] = "quickstatpanel";
         $twigRenderData["aSurveyInfo"]["showprogress"] = false;
-        Yii::app()->setConfig("surveyID", $this->iSurveyId);
+        Yii::app()->setConfig("surveyID", $surveyId);
         $twigRenderData["aSurveyInfo"]["alanguageChanger"]["show"] = false;
         $alanguageChangerDatas = getLanguageChangerDatas(App()->language);
         if ($alanguageChangerDatas) {
@@ -2115,15 +2086,16 @@ class quickStatAdminParticipationAndStat extends PluginBase
                 "datas"
             ] = $alanguageChangerDatas;
         }
-        $twigRenderData["aStatPanel"]["userName"] = Yii::app()->user->getName();
+        $twigRenderData["aStatPanel"]["userName"] = Permission::model()->getUserId() ? Yii::app()->user->getName() : null;
         $twigRenderData["aStatPanel"]["surveyUrl"] = App()->createUrl(
             "plugins/direct",
             [
                 "plugin" => $this->getName(),
                 "function" => "stat",
-                "sid" => $this->iSurveyId,
+                "sid" => $surveyId,
             ]
         );
+        $twigRenderData["aStatPanel"]["urls"] = $this->getRenderDataUrls($surveyId);
         $twigRenderData["aStatPanel"]["language"] = $this->getRenderLanguageStrings();
         $languageData = getLanguageDetails(App()->getLanguage());
         $twigRenderData["aStatPanel"]["jqplotDateFormat"] = $this->getJqplotDateFormat($languageData['dateformat']);
@@ -2132,7 +2104,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
             Yii::app()->getConfig("generalscripts") . "nojs.js",
             CClientScript::POS_HEAD
         );
-        Template::model()->getInstance(null, $this->iSurveyId);
+        Template::model()->getInstance(null, $surveyId);
         Yii::app()->twigRenderer->renderTemplateFromFile(
             "layout_global.twig",
             $twigRenderData,
@@ -2140,6 +2112,11 @@ class quickStatAdminParticipationAndStat extends PluginBase
         );
         Yii::app()->end();
     }
+
+    /**
+     * Render the list of available survey
+     * @return void
+     */
     private function renderNoSurvey()
     {
         $lang = Yii::app()->language;
@@ -2245,7 +2222,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
     private function getSurveyList()
     {
         if (!Yii::app()->user->getId()) {
-            throw new CHttpException(401);
+            return [];
         }
         static $aStatSurveys;
         if (null !== $aStatSurveys) {
@@ -2569,6 +2546,125 @@ class quickStatAdminParticipationAndStat extends PluginBase
             }
             return $aTokenValues;
         }
+    }
+
+    /**
+     * Check validated (with permission) surveyId
+     * @param integer
+     * @throw exception
+     * @return boolean
+     **/
+    public function validateSurveyId($surveyId)
+    {
+        $oSurvey = Survey::model()->findByPk($surveyId);
+        if (!$oSurvey || !$oSurvey->isActive) {
+            throw new CHttpException(404, gT("The survey in which you are trying to participate does not seem to exist."));
+        }
+        if (!Permission::model()->hasSurveyPermission($surveyId, "statistics") && !$this->checkAccesskey($surveyId)) {
+            if (Permission::model()->getUserId()) {
+                throw new CHttpException(403, gT("We are sorry but you don't have permissions to do this.", 'unescaped'));
+            }
+            App()->user->setReturnUrl(App()->request->requestUri);
+            App()->controller->redirect(["/admin/authentication"]);
+        }
+    }
+
+    /**
+     * Set the base language according to param and/or admin user language
+     * @param integer|null $surveyId
+     * @return void
+     */
+    private function setBaseLanguage($surveyId)
+    {
+        if (App()->getRequest()->getParam("lang")) {
+            App()->language = App()->getRequest()->getParam("lang");
+        } elseif (Yii::app()->session["statlanguage"]) {
+            App()->language = Yii::app()->session["statlanguage"];
+        }
+        if (!$surveyId) {
+            $aLanguages = getLanguageDataRestricted(false, "short");
+            if (!isset($aLanguages[Yii::app()->language])) {
+                $defaultlang = App()->getConfig("defaultlang");
+                Yii::app()->language = $defaultlang;
+            }
+        } elseif (!in_array(Yii::app()->language, Survey::model()->findByPk($surveyId)->getAllLanguages())) {
+            Yii::app()->language = Survey::model()->findByPk($surveyId)->language;
+        }
+        $this->surveyLanguage = Yii::app()->session["statlanguage"] = Yii::app()->language;
+    }
+
+    /**
+     * Set survey
+     * @param \Survey
+     * @throw CHttpException
+     * @return void
+     */
+    private function setSurvey($oSurvey)
+    {
+        $this->iSurveyId = $oSurvey->sid;
+        $this->surveyLanguage = $oSurvey->language;
+        if (in_array(App()->language, $oSurvey->getAllLanguages())) {
+            $this->surveyLanguage = App()->language;
+        }
+    }
+
+    /**
+     * return the render data urls with needed params
+     * @param integer $surveyId
+     * @return string[];
+     */
+    private function getRenderDataUrls($surveyId)
+    {
+        $params = [
+            'plugin' => 'quickStatAdminParticipationAndStat',
+            'sid' => $surveyId,
+            'lang' => App()->language
+        ];
+        if ($accesskey = App()->getRequest()->getQuery('accesskey', '')) {
+            $params['accesskey'] = $accesskey;
+        }
+        return [
+            'participation' => App()->createUrl("plugins/direct", array_merge($params, ['function' => 'participation'])),
+            'satisfaction' => App()->createUrl("plugins/direct", array_merge($params, ['function' => 'satisfaction'])),
+            'administration' => App()->createUrl(
+                "admin/pluginhelper",
+                [
+                    'sa' => 'sidebody',
+                    'plugin' => 'quickStatAdminParticipationAndStat',
+                    'method' => 'actionSettings',
+                    'surveyId' => $surveyId,
+                ]
+            ),
+        ];
+    }
+
+    /**
+     * return the title for current language
+     * @param integer $surveyId
+     * @return string
+     **/
+    private function getRenderDataTitle($surveyId)
+    {
+        $title = $this->get("alternateTitle", "Survey", $surveyId, "");
+        if ($title === "") {
+            $oSurvey = Survey::model()->with("languagesettings")->find("sid=:sid", [":sid" => $surveyId]);
+            $title = $oSurvey->getLocalizedTitle();
+        }
+        return $title;
+    }
+
+    /**
+     * Check if there are an access key in params
+     * @param integer $surveyId
+     * return boolean
+     */
+    private function checkAccesskey($surveyId)
+    {
+        $allowedAccessKey =  preg_replace('/[^A-Za-z0-9._~-]/', '', $this->get("accessKey", "Survey", $surveyId, ""));
+        if (empty($allowedAccessKey)) {
+            return false;
+        }
+        return App()->getRequest()->getQuery('accesskey', '') === $allowedAccessKey;
     }
 
     /**

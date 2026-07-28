@@ -5,33 +5,14 @@
 <h1 class="text-primary quickstatpanel-title{% if(strpos("#" ~ aSurveyInfo.class.body, 'fruity_twentythree')) %} h4{% endif %}">{{ aStatPanel.titre }}</h1>
 <ul class="nav nav-tabs">
     <li class="nav-item" role="presentation">
-        <a class="nav-link" href="{{ createUrl(
-            "plugins/direct",
-             ({
-                'plugin' : aStatPanel.className,
-                'function' : 'participation',
-                'sid' : aSurveyInfo.sid,
-                'lang': currentlanguage
-             })
-            ) }}"
-        >{{ lang["Participation"] }} </a>
+        <a class="nav-link" href="{{ aStatPanel.urls.participation }}">{{ lang["Participation"] }} </a>
     </li>
     <li class="nav-item"role="presentation">
         <a class="nav-link active" href="#">{{ lang["Satisfaction"] }} </a>
     </li>
   {% if aStatPanel.showAdminSurvey %}
     <li role="presentation" class="nav-item">
-        <a class="nav-link" href="{{ createUrl(
-            "admin/pluginhelper",
-             ({
-                'sa' : 'sidebody',
-                'plugin' : aStatPanel.className,
-                'method' : 'actionSettings',
-                'surveyId' : aSurveyInfo.sid,
-                'lang': currentlanguage
-             })
-            ) }}"
-        >{{ lang["Administration"] }} </a>
+        <a class="nav-link" href="{{ aStatPanel.urls.administration }}">{{ lang["Administration"] }} </a>
     </li>
   {% endif %}
 </ul>
