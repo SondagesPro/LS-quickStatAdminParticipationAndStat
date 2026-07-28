@@ -8,7 +8,7 @@
  * @copyright 2016-2025 Advantage <http://www.advantage.fr>
  * @copyright 2025-2026 PAQS <http://www.paqs.be>
  * @license AGPL v3
- * @version 5.7.0
+ * @version 5.7.2
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -2664,7 +2664,7 @@ class quickStatAdminParticipationAndStat extends PluginBase
         if (empty($allowedAccessKey)) {
             return false;
         }
-        return App()->getRequest()->getQuery('accesskey', '') === $allowedAccessKey;
+        return App()->getRequest()->getParam('accesskey', '') === $allowedAccessKey;
     }
 
     /**

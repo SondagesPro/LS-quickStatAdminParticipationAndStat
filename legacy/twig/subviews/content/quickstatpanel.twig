@@ -15,5 +15,9 @@
 {# for languagechanger (and other potential function ?#}
 <div class="hidden" aria-hidden="true">
     {{ C.Html.form(aStatPanel.surveyUrl,'get',({'id' : 'limesurvey', 'role' : 'form', 'class' : 'hidden'})) }}
+    {{ C.Html.hiddenField('function', getParam('function')) }}
+    {% if getParam('accesskey') %}
+        {{ C.Html.hiddenField('accesskey', getParam('accesskey')) }}
+    {% endif %}
     </form>
 </div>

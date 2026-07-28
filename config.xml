@@ -7,7 +7,7 @@
         <last_update>2026-07-28</last_update>
         <author>Denis Chenu</author>
         <authorUrl>https://www.sondages.pro</authorUrl>
-        <version>5.7.1</version>
+        <version>5.7.2</version>
         <license>AGPL</license>
         <description><![CDATA[Show some specific statitics to allowed admin user.]]></description>
     </metadata>
